@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-tap-highlight-color: transparent; }
+body { font-family: 'Syne', ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+.font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace !important; }
+::-webkit-scrollbar { width: 2px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(99,160,255,0.22); border-radius: 2px; }
