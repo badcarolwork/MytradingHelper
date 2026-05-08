@@ -1,4 +1,4 @@
-# TradePilot Frontend
+# MyTradeHelper Frontend
 
 Mobile-first React/Next.js trading automation dashboard for Bursa Malaysia, Moomoo, Tiger Brokers, and IBKR.
 
