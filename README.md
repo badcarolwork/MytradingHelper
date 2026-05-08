@@ -21,8 +21,8 @@ Mobile-first React/Next.js trading automation dashboard for Bursa Malaysia, Moom
 
 ```bash
 # 1. Clone
-git clone https://github.com/YOUR_USERNAME/tradepilot.git
-cd tradepilot
+git clone https://github.com/badcarolwork/MytradingHelper.git
+cd MytradingHelper
 
 # 2. Install
 npm install
@@ -39,57 +39,7 @@ npm run dev
 # → http://localhost:3000
 ```
 
-Demo login: `demo@tradepilot.my` / `Demo1234!`
-
----
-
-## Push to GitHub & go live
-
-### First time
-
-```bash
-git init
-git add .
-git commit -m "feat: TradePilot frontend"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
-git push -u origin main
-```
-
-### Enable GitHub Pages
-
-1. Repo → **Settings** → **Pages**
-2. Source → **GitHub Actions** → Save
-3. Every push to `main` auto-deploys to:
-   `https://YOUR_USERNAME.github.io/YOUR_REPO/`
-
-### Set production backend URL
-
-Repo → **Settings** → **Secrets and variables** → **Actions** → New secret:
-
-| Name | Value |
-|---|---|
-| `NEXT_PUBLIC_API_URL` | `https://your-api.yourdomain.com/api/v1` |
-| `NEXT_PUBLIC_WS_URL` | `wss://your-api.yourdomain.com/api/v1/market/ws/prices` |
-
-### Deploy subsequent changes
-
-```bash
-git add .
-git commit -m "fix: your change"
-git push
-# GitHub Actions builds + deploys automatically
-```
-
----
-
-## Vercel (alternative — zero config)
-
-```bash
-npm i -g vercel
-vercel
-# Add env vars in Vercel dashboard
-```
+Demo login: `demo@mytradehelper.my` / `Demo1234!`
 
 ---
 
@@ -112,6 +62,21 @@ src/
 ├── store/          # Zustand stores
 └── types/          # All TypeScript interfaces
 ```
+
+---
+
+## Deploy to GitHub Pages
+
+Every push to `main` auto-deploys via GitHub Actions.
+
+Add these secrets in **Repo → Settings → Secrets → Actions**:
+
+| Name | Value |
+|---|---|
+| `NEXT_PUBLIC_API_URL` | `https://your-api.yourdomain.com/api/v1` |
+| `NEXT_PUBLIC_WS_URL` | `wss://your-api.yourdomain.com/api/v1/market/ws/prices` |
+
+Live at: `https://badcarolwork.github.io/MytradingHelper/`
 
 ---
 

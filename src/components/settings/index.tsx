@@ -176,7 +176,7 @@ export function Settings({ onToast }: { onToast: (msg: string) => void }) {
       </button>
 
       <div className="text-center pb-2">
-        <div className="text-[11px] text-slate-500 font-mono">TradePilot v1.0.0 · Build 2025.05</div>
+        <div className="text-[11px] text-slate-500 font-mono">MyTradeHelper v1.0.0 · Build 2025.05</div>
         <div className="text-[10px] text-slate-600 mt-1">Broker credentials are AES-256 encrypted at rest.</div>
       </div>
 

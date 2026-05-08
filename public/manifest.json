@@ -1,6 +1,6 @@
 {
-  "name": "TradePilot",
-  "short_name": "TradePilot",
+  "name": "MyTradeHelper",
+  "short_name": "MyTradeHelper",
   "description": "Auto Trading Monitor",
   "start_url": "/",
   "display": "standalone",

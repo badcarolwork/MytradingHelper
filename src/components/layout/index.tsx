@@ -11,7 +11,7 @@ export function TopBar({ killActive }: { killActive: boolean }) {
   return (
     <header className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-50 bg-[#0a0f1e]/90 backdrop-blur-xl border-b border-blue-500/10 px-5 py-3.5 flex items-center justify-between">
       <span className="text-[17px] font-bold tracking-tight text-white">
-        Trade<span className="text-blue-400">Pilot</span>
+        MyTrade<span className="text-blue-400">Helper</span>
       </span>
       <div className={cn(
         'flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-mono transition-colors',

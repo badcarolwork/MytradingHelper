@@ -3,10 +3,10 @@ import './globals.css'
 import { Providers } from './providers'
 
 export const metadata: Metadata = {
-  title: 'TradePilot — Auto Trading Monitor',
-  description: 'Monitor and automate Bursa Malaysia and US market trades',
+  title: 'MyTradeHelper — Auto Trading Monitor',
+  description: 'Monitor and automate your Bursa Malaysia and US market trades',
   manifest: '/manifest.json',
-  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'TradePilot' },
+  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'MyTradeHelper' },
 }
 
 export const viewport: Viewport = {

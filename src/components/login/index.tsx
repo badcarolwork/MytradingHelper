@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 
 export function Login() {
   const login = useAuthStore(s => s.login)
-  const [email, setEmail] = useState('demo@tradepilot.my')
+  const [email, setEmail] = useState('demo@mytradehelper.my')
   const [password, setPassword] = useState('Demo1234!')
   const [showPw, setShowPw] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -136,7 +136,7 @@ export function Login() {
 
         {/* Demo hint */}
         <div className="mt-4 pt-4 border-t border-blue-500/10 text-center text-[11px] text-slate-500 font-mono">
-          Demo: demo@tradepilot.my · Demo1234!
+          Demo: demo@mytradehelper.my · Demo1234!
         </div>
       </div>
     </div>

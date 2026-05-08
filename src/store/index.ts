@@ -29,7 +29,7 @@ export const useAuthStore = create<AuthState>()(
         set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false })
       },
     }),
-    { name: 'tradepilot-auth', partialize: (s) => ({ accessToken: s.accessToken, refreshToken: s.refreshToken }) }
+    { name: 'mytradehelper-auth', partialize: (s) => ({ accessToken: s.accessToken, refreshToken: s.refreshToken }) }
   )
 )
 
