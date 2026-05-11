@@ -393,9 +393,57 @@ function NewModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Strate
   )
 }
 
+
+// ── Sort types ────────────────────────────────────────────────────────────────
+type SortKey = 'name' | 'status' | 'pnl' | 'win_rate' | 'trades' | 'created'
+type SortDir = 'asc' | 'desc'
+type StatusFilter = 'all' | 'active' | 'paused' | 'inactive'
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: 'created',  label: 'Date created' },
+  { key: 'name',     label: 'Name A–Z' },
+  { key: 'status',   label: 'Status' },
+  { key: 'pnl',      label: 'P&L' },
+  { key: 'win_rate', label: 'Win rate' },
+  { key: 'trades',   label: 'Trades' },
+]
+
+const STATUS_ORDER: Record<string, number> = { active: 0, paused: 1, inactive: 2 }
+
+const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
+  { key: 'all',      label: 'All' },
+  { key: 'active',   label: 'Active' },
+  { key: 'paused',   label: 'Paused' },
+  { key: 'inactive', label: 'Inactive' },
+]
+
+function sortStrategies(list: Strategy[], key: SortKey, dir: SortDir): Strategy[] {
+  return [...list].sort((a, b) => {
+    let diff = 0
+    switch (key) {
+      case 'name':     diff = a.name.localeCompare(b.name); break
+      case 'status':   diff = (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9); break
+      case 'pnl':      diff = a.stats.total_pnl - b.stats.total_pnl; break
+      case 'win_rate': {
+        const wa = a.stats.trades > 0 ? a.stats.wins / a.stats.trades : 0
+        const wb = b.stats.trades > 0 ? b.stats.wins / b.stats.trades : 0
+        diff = wa - wb; break
+      }
+      case 'trades':   diff = a.stats.trades - b.stats.trades; break
+      case 'created':  diff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime(); break
+    }
+    return dir === 'asc' ? diff : -diff
+  })
+}
+
 // ── Strategies page ───────────────────────────────────────────────────────────
 export function Strategies({ onToast }: { onToast: (m: string) => void }) {
-  const [showModal, setShowModal] = useState(false)
+  const [showModal, setShowModal]       = useState(false)
+  const [query, setQuery]               = useState('')
+  const [sortKey, setSortKey]           = useState<SortKey>('created')
+  const [sortDir, setSortDir]           = useState<SortDir>('desc')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [showSort, setShowSort]         = useState(false)
   const qc = useQueryClient()
 
   const { data, isLoading } = useQuery({
@@ -429,26 +477,202 @@ export function Strategies({ onToast }: { onToast: (m: string) => void }) {
     },
   })
 
+  // Filter + sort pipeline
+  const allStrategies = data?.strategies ?? []
+
+  const filtered = allStrategies.filter(s => {
+    const q = query.trim().toLowerCase()
+    const matchQuery = !q ||
+      s.name.toLowerCase().includes(q) ||
+      s.broker.toLowerCase().includes(q) ||
+      s.market.toLowerCase().includes(q) ||
+      s.symbols.some(sym => sym.toLowerCase().includes(q)) ||
+      s.entry_trigger.toLowerCase().includes(q)
+    const matchStatus = statusFilter === 'all' || s.status === statusFilter
+    return matchQuery && matchStatus
+  })
+
+  const sorted = sortStrategies(filtered, sortKey, sortDir)
+
+  const handleSortKey = (key: SortKey) => {
+    if (key === sortKey) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(key); setSortDir('desc') }
+    setShowSort(false)
+  }
+
+  const currentLabel = SORT_OPTIONS.find(o => o.key === sortKey)?.label ?? 'Sort'
+
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0 8px' }}>
-        <span className="section-label">My Strategies</span>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0 10px' }}>
+        <span className="section-label">
+          My Strategies
+          {filtered.length !== allStrategies.length && (
+            <span style={{ color: 'var(--accent2)', marginLeft: 6, fontStyle: 'normal' }}>
+              ({filtered.length}/{allStrategies.length})
+            </span>
+          )}
+        </span>
         <button
           className="btn btn-primary"
-          style={{ flex: 0, padding: '8px 16px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}
+          style={{ flex: 0, padding: '8px 14px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}
           onClick={() => setShowModal(true)}
         >
           <Plus size={13} /> New
         </button>
       </div>
 
+      {/* Search bar */}
+      <div style={{ position: 'relative', marginBottom: 8 }}>
+        <span style={{
+          position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)',
+          color: 'var(--text3)', pointerEvents: 'none', display: 'flex', alignItems: 'center',
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </span>
+        <input
+          type="text"
+          placeholder="Search name, broker, market, symbol…"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          style={{
+            width: '100%', background: 'var(--bg2)',
+            border: `1px solid ${query ? 'var(--accent)' : 'var(--border)'}`,
+            borderRadius: 10, padding: '9px 34px 9px 32px',
+            color: 'var(--text)', fontFamily: 'var(--mono)', fontSize: 12,
+            outline: 'none', transition: 'border-color 0.2s',
+          }}
+        />
+        {query && (
+          <button
+            onClick={() => setQuery('')}
+            style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', padding: 2, display: 'flex' }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {/* Status filter pills + Sort */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 5, flex: 1, overflowX: 'auto', paddingBottom: 2, scrollbarWidth: 'none' }}>
+          {STATUS_FILTERS.map(f => (
+            <button
+              key={f.key}
+              onClick={() => setStatusFilter(f.key)}
+              style={{
+                fontFamily: 'var(--mono)', fontSize: 10, padding: '4px 10px',
+                borderRadius: 20, cursor: 'pointer', transition: 'all 0.15s',
+                whiteSpace: 'nowrap', flexShrink: 0,
+                background: statusFilter === f.key ? 'var(--accent)' : 'var(--bg2)',
+                color: statusFilter === f.key ? '#fff' : 'var(--text3)',
+                border: `1px solid ${statusFilter === f.key ? 'var(--accent)' : 'var(--border)'}`,
+                fontWeight: statusFilter === f.key ? 600 : 400,
+              }}
+            >
+              {f.label}
+              {f.key !== 'all' && (
+                <span style={{ marginLeft: 5, opacity: 0.7, fontSize: 9 }}>
+                  {allStrategies.filter(s => s.status === f.key).length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Sort dropdown */}
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <button
+            onClick={() => setShowSort(v => !v)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              fontFamily: 'var(--mono)', fontSize: 10, padding: '5px 10px',
+              borderRadius: 8, cursor: 'pointer',
+              background: showSort ? 'var(--surface2)' : 'var(--bg2)',
+              color: 'var(--accent2)', border: '1px solid var(--border2)',
+              whiteSpace: 'nowrap', transition: 'background 0.15s',
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/>
+            </svg>
+            {currentLabel}
+            <span>{sortDir === 'asc' ? '↑' : '↓'}</span>
+          </button>
+
+          {showSort && (
+            <>
+              {/* Backdrop */}
+              <div style={{ position: 'fixed', inset: 0, zIndex: 49 }} onClick={() => setShowSort(false)} />
+              {/* Dropdown */}
+              <div style={{
+                position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 50,
+                background: 'var(--bg2)', border: '1px solid var(--border2)',
+                borderRadius: 10, overflow: 'hidden', minWidth: 154,
+                boxShadow: '0 8px 28px rgba(0,0,0,0.45)',
+              }}>
+                {SORT_OPTIONS.map((o, i) => (
+                  <button
+                    key={o.key}
+                    onClick={() => handleSortKey(o.key)}
+                    style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      width: '100%', padding: '10px 14px', border: 'none', cursor: 'pointer',
+                      fontFamily: 'var(--mono)', fontSize: 12, textAlign: 'left',
+                      color: sortKey === o.key ? 'var(--accent2)' : 'var(--text2)',
+                      background: sortKey === o.key ? 'rgba(59,130,246,0.1)' : 'transparent',
+                      borderBottom: i < SORT_OPTIONS.length - 1 ? '1px solid var(--border)' : 'none',
+                      transition: 'background 0.1s',
+                    } as React.CSSProperties}
+                  >
+                    {o.label}
+                    {sortKey === o.key && (
+                      <span style={{ color: 'var(--accent2)', fontSize: 11 }}>
+                        {sortDir === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Loading */}
       {isLoading && (
         <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
           <Spinner />
         </div>
       )}
 
-      {data?.strategies.map(s => (
+      {/* Empty state */}
+      {!isLoading && sorted.length === 0 && (
+        <div style={{
+          textAlign: 'center', padding: '32px 20px',
+          background: 'var(--bg2)', border: '1px solid var(--border)',
+          borderRadius: 14,
+        }}>
+          <div style={{ fontSize: 28, marginBottom: 10 }}>🔍</div>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6, color: 'var(--text2)' }}>
+            No strategies found
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text3)', fontFamily: 'var(--mono)', marginBottom: 14 }}>
+            {query ? `No results for "${query}"` : `No ${statusFilter} strategies`}
+          </div>
+          <button onClick={() => { setQuery(''); setStatusFilter('all') }} className="card-action">
+            Clear filters
+          </button>
+        </div>
+      )}
+
+      {/* Results */}
+      {sorted.map(s => (
         <StrategyCard
           key={s.id}
           s={s}
@@ -456,6 +680,13 @@ export function Strategies({ onToast }: { onToast: (m: string) => void }) {
           onEval={() => evalMutation.mutate(s.id)}
         />
       ))}
+
+      {/* Footer count */}
+      {!isLoading && allStrategies.length > 0 && (
+        <div style={{ textAlign: 'center', fontSize: 10, color: 'var(--text3)', fontFamily: 'var(--mono)', padding: '2px 0 8px' }}>
+          {sorted.length} of {allStrategies.length} · {currentLabel} {sortDir === 'asc' ? '↑' : '↓'}
+        </div>
+      )}
 
       {showModal && (
         <NewModal
