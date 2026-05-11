@@ -22,21 +22,17 @@ function App() {
   }, [])
 
   return (
-    <div className="relative min-h-dvh max-w-[430px] mx-auto">
-      <div className="pointer-events-none fixed inset-0 z-0"
-        style={{ background: 'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px)' }}
-      />
+    <div style={{ position: 'relative', minHeight: '100dvh', maxWidth: 430, margin: '0 auto', backgroundColor: '#0a0f1e' }}>
+      <div className="scanlines" />
       <TopBar killActive={killSwitchActive} />
       <Toast message={toast.msg} visible={toast.visible} />
-
-      <main className="relative z-10" style={{ paddingTop: '64px', paddingBottom: '72px', padding: '64px 16px 80px' }}>
+      <main style={{ paddingTop: 64, paddingBottom: 80, padding: '64px 16px 80px', position: 'relative', zIndex: 1 }}>
         {tab === 'dashboard'  && <Dashboard  onToast={showToast} />}
         {tab === 'watchlist'  && <Watchlist  onToast={showToast} />}
         {tab === 'strategies' && <Strategies onToast={showToast} />}
         {tab === 'orders'     && <Orders     onToast={showToast} />}
         {tab === 'settings'   && <Settings   onToast={showToast} />}
       </main>
-
       <BottomNav active={tab} onNavigate={setTab} />
     </div>
   )
@@ -45,16 +41,13 @@ function App() {
 export default function Home() {
   const { isAuthenticated } = useAuthStore()
   const [mounted, setMounted] = useState(false)
-
   useEffect(() => { setMounted(true) }, [])
 
-  if (!mounted) {
-    return (
-      <div className="min-h-dvh bg-[#0a0f1e] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-blue-500/20 border-t-blue-400 rounded-full animate-spin" />
-      </div>
-    )
-  }
+  if (!mounted) return (
+    <div style={{ minHeight: '100dvh', backgroundColor: '#0a0f1e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: 32, height: 32, border: '2px solid rgba(59,130,246,0.2)', borderTopColor: '#60a5fa', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+    </div>
+  )
 
   return isAuthenticated ? <App /> : <Login />
 }
