@@ -12,9 +12,9 @@ import { Settings } from '@/components/settings'
 import { useTradingStore } from '@/store'
 
 function App() {
-  const [tab, setTab] = useState<TabId>('dashboard')
+  const [tab, setTab]   = useState<TabId>('dashboard')
   const [toast, setToast] = useState({ msg: '', visible: false })
-  const killSwitchActive = useTradingStore(s => s.killSwitchActive)
+  const killSwitchActive  = useTradingStore(s => s.killSwitchActive)
 
   const showToast = useCallback((msg: string) => {
     setToast({ msg, visible: true })
@@ -22,11 +22,10 @@ function App() {
   }, [])
 
   return (
-    <div style={{ position: 'relative', minHeight: '100dvh', maxWidth: 430, margin: '0 auto', backgroundColor: '#0a0f1e' }}>
-      <div className="scanlines" />
+    <>
       <TopBar killActive={killSwitchActive} />
       <Toast message={toast.msg} visible={toast.visible} />
-      <main style={{ paddingTop: 64, paddingBottom: 80, padding: '64px 16px 80px', position: 'relative', zIndex: 1 }}>
+      <main style={{ paddingTop: 72, paddingBottom: 90, padding: '72px 16px 90px', display: 'flex', flexDirection: 'column', gap: 14, position: 'relative', zIndex: 1 }}>
         {tab === 'dashboard'  && <Dashboard  onToast={showToast} />}
         {tab === 'watchlist'  && <Watchlist  onToast={showToast} />}
         {tab === 'strategies' && <Strategies onToast={showToast} />}
@@ -34,7 +33,7 @@ function App() {
         {tab === 'settings'   && <Settings   onToast={showToast} />}
       </main>
       <BottomNav active={tab} onNavigate={setTab} />
-    </div>
+    </>
   )
 }
 
@@ -44,8 +43,8 @@ export default function Home() {
   useEffect(() => { setMounted(true) }, [])
 
   if (!mounted) return (
-    <div style={{ minHeight: '100dvh', backgroundColor: '#0a0f1e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: 32, height: 32, border: '2px solid rgba(59,130,246,0.2)', borderTopColor: '#60a5fa', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh' }}>
+      <div style={{ width: 28, height: 28, border: '2px solid rgba(99,160,255,0.2)', borderTopColor: 'var(--accent2)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
     </div>
   )
 

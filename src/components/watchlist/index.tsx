@@ -2,11 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { TrendingUp, TrendingDown } from 'lucide-react'
 import { mockMarketApi } from '@/lib/mockApi'
 import { MOCK_PRICES } from '@/lib/mockData'
 import { Card, CardHeader } from '@/components/ui'
-import { cn } from '@/lib/utils'
 import type { PriceData } from '@/types'
 
 const MY_SYMBOLS = ['PBBANK','MAYBANK','TENAGA','CIMB','DIALOG','HARTA']
@@ -17,44 +15,38 @@ function PriceRow({ symbol, prices }: { symbol: string; prices: Record<string, P
   if (!p) return null
   const up = p.change_pct >= 0
   return (
-    <div className="flex items-center justify-between py-3 border-b border-blue-500/10 last:border-0">
-      <div className="flex items-center gap-2.5">
-        <div className="w-9 h-9 rounded-lg bg-[#1e2d45] flex items-center justify-center text-[11px] font-bold font-mono text-blue-400">
-          {symbol.slice(0, 3)}
-        </div>
+    <div className="wl-item">
+      <div className="wl-left">
+        <div className="wl-icon">{symbol.slice(0, 3)}</div>
         <div>
-          <div className="text-[14px] font-semibold text-slate-100">{symbol}</div>
-          <div className="text-[11px] text-slate-500">{p.name}</div>
+          <div className="wl-ticker">{symbol}</div>
+          <div className="wl-name">{p.name}</div>
         </div>
       </div>
-      <div className="flex items-center gap-2">
-        {up ? <TrendingUp size={12} className="text-emerald-400" /> : <TrendingDown size={12} className="text-red-400" />}
-        <div className="text-right">
-          <div className="text-[14px] font-semibold font-mono text-slate-100">{p.price.toFixed(2)}</div>
-          <div className={cn('text-[11px] font-mono px-1.5 py-0.5 rounded mt-0.5', up ? 'bg-emerald-500/12 text-emerald-400' : 'bg-red-500/12 text-red-400')}>
-            {up ? '+' : ''}{p.change_pct.toFixed(2)}%
-          </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="wl-right">
+          <div className="wl-price">{p.price.toFixed(2)}</div>
+          <div className={`wl-chg ${up ? 'up' : 'dn'}`}>{up ? '+' : ''}{p.change_pct.toFixed(2)}%</div>
         </div>
       </div>
     </div>
   )
 }
 
-export function Watchlist({ onToast }: { onToast: (msg: string) => void }) {
-  const [trigger, setTrigger] = useState('RSI_OVERSOLD')
-  // Live-tick prices locally
+export function Watchlist({ onToast }: { onToast: (m: string) => void }) {
   const [prices, setPrices] = useState<Record<string, PriceData>>({ ...MOCK_PRICES })
+  const [trigger, setTrigger] = useState('RSI_OVERSOLD')
 
   useEffect(() => {
     const id = setInterval(() => {
       setPrices(prev => {
         const next = { ...prev }
         Object.keys(next).forEach(sym => {
-          const base = MOCK_PRICES[sym].price
+          const base  = MOCK_PRICES[sym].price
           const drift = (Math.random() - 0.48) * base * 0.001
-          const newPrice = Math.max(base * 0.9, Math.min(base * 1.1, next[sym].price + drift))
-          const change = newPrice - MOCK_PRICES[sym].open
-          next[sym] = { ...next[sym], price: +newPrice.toFixed(4), change: +change.toFixed(4), change_pct: +(change / MOCK_PRICES[sym].open * 100).toFixed(2) }
+          const price = Math.max(base * 0.9, Math.min(base * 1.1, next[sym].price + drift))
+          const chg   = price - MOCK_PRICES[sym].open
+          next[sym]   = { ...next[sym], price: +price.toFixed(4), change: +chg.toFixed(4), change_pct: +(chg / MOCK_PRICES[sym].open * 100).toFixed(2) }
         })
         return next
       })
@@ -62,24 +54,19 @@ export function Watchlist({ onToast }: { onToast: (msg: string) => void }) {
     return () => clearInterval(id)
   }, [])
 
-  const { data: scanData } = useQuery({
-    queryKey: ['scanner', trigger],
-    queryFn: () => mockMarketApi.scanner(trigger).then(r => r.data),
-    refetchInterval: 30_000,
-  })
-
+  const { data: scanData } = useQuery({ queryKey: ['scanner', trigger], queryFn: () => mockMarketApi.scanner(trigger).then(r => r.data), refetchInterval: 30_000 })
   const signals = scanData?.results.filter(r => r.signal) ?? []
 
   return (
-    <div className="flex flex-col gap-3.5">
+    <>
       <Card>
-        <CardHeader title="Bursa Malaysia" />
-        {MY_SYMBOLS.map(sym => <PriceRow key={sym} symbol={sym} prices={prices} />)}
+        <CardHeader title="Bursa Malaysia" action={<button className="card-action" onClick={() => onToast('+ Add coming soon')}>+ Add</button>} />
+        {MY_SYMBOLS.map(s => <PriceRow key={s} symbol={s} prices={prices} />)}
       </Card>
 
       <Card>
-        <CardHeader title="US Markets (Moomoo)" />
-        {US_SYMBOLS.map(sym => <PriceRow key={sym} symbol={sym} prices={prices} />)}
+        <CardHeader title="US Markets (Moomoo)" action={<button className="card-action" onClick={() => onToast('+ Add coming soon')}>+ Add</button>} />
+        {US_SYMBOLS.map(s => <PriceRow key={s} symbol={s} prices={prices} />)}
       </Card>
 
       <Card>
@@ -87,7 +74,7 @@ export function Watchlist({ onToast }: { onToast: (msg: string) => void }) {
           title="Signal Scanner"
           action={
             <select value={trigger} onChange={e => setTrigger(e.target.value)}
-              className="text-[10px] font-mono bg-[#1a2235] border border-blue-500/20 rounded px-2 py-1 text-blue-400 outline-none">
+              style={{ fontSize: 10, fontFamily: 'var(--mono)', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 4, padding: '2px 6px', color: 'var(--accent2)', outline: 'none' }}>
               <option value="RSI_OVERSOLD">RSI Oversold</option>
               <option value="MACD_BULLISH_CROSS">MACD Cross</option>
               <option value="VOLUME_SPIKE">Volume Spike</option>
@@ -95,27 +82,27 @@ export function Watchlist({ onToast }: { onToast: (msg: string) => void }) {
           }
         />
         {signals.length === 0
-          ? <div className="py-4 text-center text-[12px] text-slate-500">No signals right now</div>
+          ? <div style={{ padding: '16px 0', textAlign: 'center', color: 'var(--text3)', fontSize: 12 }}>No signals right now</div>
           : signals.map(r => (
-            <div key={r.symbol} className="flex items-center justify-between py-2.5 border-b border-blue-500/10 last:border-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-lg bg-[#1e2d45] flex items-center justify-center text-[11px] font-bold font-mono text-blue-400">{r.symbol.slice(0,3)}</div>
+            <div key={r.symbol} className="wl-item">
+              <div className="wl-left">
+                <div className="wl-icon">{r.symbol.slice(0,3)}</div>
                 <div>
-                  <div className="text-[13px] font-semibold text-slate-100">{r.symbol}</div>
-                  <div className="text-[11px] text-amber-400">{r.trigger.replace(/_/g,' ').toLowerCase()}</div>
+                  <div className="wl-ticker">{r.symbol}</div>
+                  <div className="wl-name" style={{ color: 'var(--amber2)' }}>{r.trigger.replace(/_/g,' ').toLowerCase()}</div>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="text-[13px] font-mono text-slate-100">{r.price.toFixed(2)}</div>
-                {r.rsi_14 && <div className="text-[10px] font-mono text-amber-400">RSI {r.rsi_14.toFixed(1)}</div>}
+              <div className="wl-right">
+                <div className="wl-price">{r.price.toFixed(2)}</div>
+                {r.rsi_14 && <div style={{ fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--amber2)' }}>RSI {r.rsi_14.toFixed(1)}</div>}
               </div>
             </div>
           ))
         }
-        <div className="mt-2 text-[10px] font-mono text-slate-500">
+        <div style={{ marginTop: 8, fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--text3)' }}>
           {scanData?.results.length ?? 0} scanned · {signals.length} signals
         </div>
       </Card>
-    </div>
+    </>
   )
 }
