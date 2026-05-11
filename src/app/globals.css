@@ -2,10 +2,161 @@
 @tailwind components;
 @tailwind utilities;
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+/* ── Base reset ── */
+*, *::before, *::after { box-sizing: border-box; }
 html { -webkit-tap-highlight-color: transparent; }
-body { font-family: 'Syne', ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
-.font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace !important; }
+
+/* ── App shell ── */
+body {
+  background-color: #0a0f1e;
+  color: #e2e8f0;
+  font-family: 'Syne', ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* ── Scanline texture ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Fonts ── */
+.font-mono, code, pre {
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+}
+
+/* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 2px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(99,160,255,0.22); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: rgba(99,160,255,0.25); border-radius: 2px; }
+
+/* ── Colour tokens as CSS variables ── */
+:root {
+  --bg:       #0a0f1e;
+  --bg2:      #111827;
+  --bg3:      #1a2235;
+  --surface:  #1e2d45;
+  --surface2: #243352;
+  --border:   rgba(99,160,255,0.12);
+  --border2:  rgba(99,160,255,0.22);
+  --accent:   #3b82f6;
+  --accent2:  #60a5fa;
+  --green:    #10b981;
+  --green2:   #34d399;
+  --red:      #ef4444;
+  --red2:     #f87171;
+  --amber:    #f59e0b;
+  --amber2:   #fbbf24;
+  --text:     #e2e8f0;
+  --text2:    #94a3b8;
+  --text3:    #64748b;
+}
+
+/* ── Component base styles (ensures colors work even without Tailwind JIT) ── */
+.tp-card {
+  background-color: #111827;
+  border: 1px solid rgba(99,160,255,0.12);
+  border-radius: 14px;
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.tp-topbar {
+  background-color: rgba(10,15,30,0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(99,160,255,0.12);
+}
+
+.tp-bottomnav {
+  background-color: rgba(10,15,30,0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(99,160,255,0.12);
+}
+
+.tp-metric {
+  background-color: #1a2235;
+  border: 1px solid rgba(99,160,255,0.12);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.tp-input {
+  background-color: #1a2235;
+  border: 1px solid rgba(99,160,255,0.15);
+  color: #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  width: 100%;
+  outline: none;
+}
+
+.tp-input:focus {
+  border-color: #3b82f6;
+  background-color: rgba(59,130,246,0.05);
+}
+
+.tp-btn-primary {
+  background-color: #3b82f6;
+  color: #ffffff;
+  border: none;
+  border-radius: 9px;
+  padding: 11px 0;
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.2s;
+}
+
+.tp-btn-primary:hover  { background-color: #2563eb; }
+.tp-btn-primary:active { transform: scale(0.98); }
+
+.tp-btn-outline {
+  background: transparent;
+  border: 1px solid rgba(99,160,255,0.22);
+  color: #94a3b8;
+  border-radius: 9px;
+  padding: 11px 0;
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.2s;
+}
+
+.tp-kill {
+  background-color: rgba(239,68,68,0.08);
+  border: 1.5px solid rgba(239,68,68,0.30);
+  color: #f87171;
+}
+
+.tp-kill:hover { background-color: rgba(239,68,68,0.14); }
+
+/* ── Animations ── */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.animate-spin { animation: spin 1s linear infinite; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+.animate-pulse { animation: pulse 2s ease-in-out infinite; }

@@ -1,61 +1,67 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import {
-  LayoutGrid, TrendingUp, Zap, FileText, Settings,
-  PowerOff,
-} from 'lucide-react'
+import { LayoutGrid, TrendingUp, Zap, FileText, Settings, PowerOff } from 'lucide-react'
 
-// ─── TopBar ───────────────────────────────────────────────────────────────────
+// ── TopBar ────────────────────────────────────────────────────────────────────
 export function TopBar({ killActive }: { killActive: boolean }) {
   return (
-    <header className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-50 bg-[#0a0f1e]/90 backdrop-blur-xl border-b border-blue-500/10 px-5 py-3.5 flex items-center justify-between">
-      <span className="text-[17px] font-bold tracking-tight text-white">
-        MyTrade<span className="text-blue-400">Helper</span>
+    <header className="tp-topbar" style={{
+      position: 'fixed', top: 0, left: '50%', transform: 'translateX(-50%)',
+      width: '100%', maxWidth: 430, zIndex: 50,
+      padding: '14px 20px 12px',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    }}>
+      <span style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.01em', color: '#e2e8f0' }}>
+        MyTrade<span style={{ color: '#60a5fa' }}>Helper</span>
       </span>
-      <div className={cn(
-        'flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-mono transition-colors',
-        killActive
-          ? 'bg-red-500/10 border-red-500/20 text-red-400'
-          : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-      )}>
-        <span className={cn(
-          'w-1.5 h-1.5 rounded-full',
-          killActive ? 'bg-red-400' : 'bg-emerald-400 animate-pulse'
-        )} />
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        padding: '4px 10px', borderRadius: 100,
+        border: `1px solid ${killActive ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.25)'}`,
+        background: killActive ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)',
+        fontSize: 11, fontFamily: 'JetBrains Mono, monospace',
+        color: killActive ? '#f87171' : '#34d399',
+      }}>
+        <span style={{
+          width: 6, height: 6, borderRadius: '50%',
+          background: killActive ? '#f87171' : '#34d399',
+          animation: killActive ? 'none' : 'pulse 2s ease-in-out infinite',
+        }} />
         {killActive ? 'HALTED' : 'LIVE'}
       </div>
     </header>
   )
 }
 
-// ─── BottomNav ────────────────────────────────────────────────────────────────
-const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard', Icon: LayoutGrid },
-  { id: 'watchlist', label: 'Watchlist', Icon: TrendingUp },
+// ── BottomNav ─────────────────────────────────────────────────────────────────
+const NAV = [
+  { id: 'dashboard',  label: 'Dashboard',  Icon: LayoutGrid },
+  { id: 'watchlist',  label: 'Watchlist',  Icon: TrendingUp },
   { id: 'strategies', label: 'Strategies', Icon: Zap },
-  { id: 'orders', label: 'Orders', Icon: FileText },
-  { id: 'settings', label: 'Settings', Icon: Settings },
+  { id: 'orders',     label: 'Orders',     Icon: FileText },
+  { id: 'settings',   label: 'Settings',   Icon: Settings },
 ] as const
 
-export type TabId = typeof NAV_ITEMS[number]['id']
+export type TabId = typeof NAV[number]['id']
 
-export function BottomNav({ active, onNavigate }: {
-  active: TabId
-  onNavigate: (tab: TabId) => void
-}) {
+export function BottomNav({ active, onNavigate }: { active: TabId; onNavigate: (tab: TabId) => void }) {
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-50 bg-[#0a0f1e]/95 backdrop-blur-xl border-t border-blue-500/10 flex justify-around pb-[env(safe-area-inset-bottom)]">
-      {NAV_ITEMS.map(({ id, label, Icon }) => (
-        <button
-          key={id}
-          onClick={() => onNavigate(id)}
-          className={cn(
-            'flex flex-col items-center gap-1 py-2.5 px-4 text-[10px] tracking-wide transition-colors',
-            active === id ? 'text-blue-400' : 'text-slate-500'
-          )}
-        >
-          <Icon size={20} strokeWidth={1.8} />
+    <nav className="tp-bottomnav" style={{
+      position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+      width: '100%', maxWidth: 430, zIndex: 50,
+      display: 'flex', justifyContent: 'space-around',
+      paddingBottom: 'calc(10px + env(safe-area-inset-bottom))',
+    }}>
+      {NAV.map(({ id, label, Icon }) => (
+        <button key={id} onClick={() => onNavigate(id)} style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          gap: 4, padding: '10px 14px', background: 'none', border: 'none',
+          cursor: 'pointer', fontSize: 10, letterSpacing: '0.04em',
+          color: active === id ? '#60a5fa' : '#64748b',
+          transition: 'color 0.2s',
+        }}>
+          <Icon size={22} strokeWidth={1.8} />
           {label}
         </button>
       ))}
@@ -63,13 +69,18 @@ export function BottomNav({ active, onNavigate }: {
   )
 }
 
-// ─── Toast ────────────────────────────────────────────────────────────────────
+// ── Toast ─────────────────────────────────────────────────────────────────────
 export function Toast({ message, visible }: { message: string; visible: boolean }) {
   return (
-    <div className={cn(
-      'fixed top-20 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-xl border border-blue-500/20 bg-[#243352] text-[12px] font-mono text-slate-200 pointer-events-none whitespace-nowrap transition-all duration-300',
-      visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
-    )}>
+    <div style={{
+      position: 'fixed', top: 80, left: '50%',
+      transform: `translateX(-50%) translateY(${visible ? 0 : -8}px)`,
+      background: '#243352', border: '1px solid rgba(99,160,255,0.22)',
+      padding: '10px 18px', borderRadius: 10,
+      fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: '#e2e8f0',
+      pointerEvents: 'none', whiteSpace: 'nowrap',
+      opacity: visible ? 1 : 0, transition: 'all 0.3s', zIndex: 200,
+    }}>
       {message}
     </div>
   )

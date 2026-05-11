@@ -5,7 +5,7 @@ import { Providers } from './providers'
 export const metadata: Metadata = {
   title: 'MyTradeHelper — Auto Trading Monitor',
   description: 'Monitor and automate your Bursa Malaysia and US market trades',
-  manifest: '/manifest.json',
+  manifest: '/MytradingHelper/manifest.json',
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'MyTradeHelper' },
 }
 
@@ -23,8 +23,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <style>{`
+          html, body { background-color: #0a0f1e !important; color: #e2e8f0 !important; }
+        `}</style>
       </head>
-      <body className="bg-[#0a0f1e] text-slate-100 antialiased overflow-x-hidden">
+      <body style={{ backgroundColor: '#0a0f1e', color: '#e2e8f0', margin: 0, padding: 0 }}>
         <Providers>{children}</Providers>
       </body>
     </html>
