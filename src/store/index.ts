@@ -1,39 +1,76 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { User, PriceData, RiskConfig } from '@/types'
-import { setToken, clearToken } from '@/lib/api'
 
-// ─── Auth store ───────────────────────────────────────────────────────────────
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000 // 24 hours
+
+// ── Auth store ────────────────────────────────────────────────────────────────
 interface AuthState {
   user: User | null
   accessToken: string | null
   refreshToken: string | null
   isAuthenticated: boolean
+  loginAt: number | null           // unix ms — used to enforce 24h TTL
   login: (user: User, access: string, refresh: string) => void
   logout: () => void
+  checkSession: () => boolean      // returns true if session still valid
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       accessToken: null,
       refreshToken: null,
       isAuthenticated: false,
+      loginAt: null,
+
       login: (user, access, refresh) => {
-        setToken(access)
-        set({ user, accessToken: access, refreshToken: refresh, isAuthenticated: true })
+        set({
+          user,
+          accessToken: access,
+          refreshToken: refresh,
+          isAuthenticated: true,
+          loginAt: Date.now(),
+        })
       },
+
       logout: () => {
-        clearToken()
-        set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false })
+        set({
+          user: null,
+          accessToken: null,
+          refreshToken: null,
+          isAuthenticated: false,
+          loginAt: null,
+        })
+      },
+
+      checkSession: () => {
+        const { loginAt, isAuthenticated, logout } = get()
+        if (!isAuthenticated || !loginAt) return false
+        const expired = Date.now() - loginAt > SESSION_TTL_MS
+        if (expired) {
+          logout()
+          return false
+        }
+        return true
       },
     }),
-    { name: 'mytradehelper-auth', partialize: (s) => ({ accessToken: s.accessToken, refreshToken: s.refreshToken }) }
+    {
+      name: 'mytradehelper-auth',
+      // Persist everything needed to restore the session
+      partialize: (s) => ({
+        user: s.user,
+        accessToken: s.accessToken,
+        refreshToken: s.refreshToken,
+        isAuthenticated: s.isAuthenticated,
+        loginAt: s.loginAt,
+      }),
+    }
   )
 )
 
-// ─── Market store ─────────────────────────────────────────────────────────────
+// ── Market store ──────────────────────────────────────────────────────────────
 interface MarketState {
   prices: Record<string, PriceData>
   setPrices: (prices: Record<string, PriceData>) => void
@@ -46,7 +83,7 @@ export const useMarketStore = create<MarketState>((set, get) => ({
   getPrice: (symbol) => get().prices[symbol],
 }))
 
-// ─── Trading/UI store ─────────────────────────────────────────────────────────
+// ── Trading/UI store ──────────────────────────────────────────────────────────
 interface TradingState {
   killSwitchActive: boolean
   riskConfig: RiskConfig | null
