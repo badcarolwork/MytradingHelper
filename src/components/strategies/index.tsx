@@ -2,11 +2,56 @@
 
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Play, Pause, FlaskConical } from 'lucide-react'
+import { Plus, Play, Pause, FlaskConical, AlertCircle } from 'lucide-react'
 import { mockStrategyApi } from '@/lib/mockApi'
 import { Card, Badge, Spinner } from '@/components/ui'
 import type { Strategy, StrategyCreate } from '@/types'
 
+// ── Validation ────────────────────────────────────────────────────────────────
+interface FormErrors {
+  name?: string
+  symbols?: string
+  quantity?: string
+  max_position_size?: string
+}
+
+function validate(form: StrategyCreate): FormErrors {
+  const errs: FormErrors = {}
+
+  if (!form.name.trim())
+    errs.name = 'Strategy name is required'
+  else if (form.name.trim().length < 3)
+    errs.name = 'Name must be at least 3 characters'
+  else if (form.name.trim().length > 40)
+    errs.name = 'Name must be 40 characters or less'
+
+  if (!form.symbols.length || form.symbols.every(s => !s.trim()))
+    errs.symbols = 'At least one stock symbol is required'
+
+  if (!form.quantity || form.quantity <= 0)
+    errs.quantity = 'Quantity must be greater than 0'
+  else if (form.quantity > 100_000)
+    errs.quantity = 'Quantity cannot exceed 100,000 lots'
+
+  if (!form.max_position_size || form.max_position_size <= 0)
+    errs.max_position_size = 'Max position size must be greater than 0'
+  else if (form.max_position_size > 500_000)
+    errs.max_position_size = 'Max position size cannot exceed RM 500,000'
+
+  if (form.quantity > 0 && (form.max_position_size ?? 0) > 0) {
+    // warn if quantity * approx price > max_position_size (rough sanity check)
+    const roughValue = form.market === 'KLSE'
+      ? form.quantity * 5       // ~RM 5 avg per lot
+      : form.quantity * 1000    // ~RM 1000 per share for US
+    if (roughValue > (form.max_position_size ?? 0) * 10) {
+      errs.quantity = `Quantity seems very large for this max position size`
+    }
+  }
+
+  return errs
+}
+
+// ── Strategy card ─────────────────────────────────────────────────────────────
 function StrategyCard({ s, onToggle, onEval }: { s: Strategy; onToggle: () => void; onEval: () => void }) {
   const wr  = s.stats.trades > 0 ? Math.round(s.stats.wins / s.stats.trades * 100) : 0
   const pnl = s.stats.total_pnl
@@ -52,38 +97,100 @@ function StrategyCard({ s, onToggle, onEval }: { s: Strategy; onToggle: () => vo
   )
 }
 
-// Compact field for small screens
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+// ── Form helpers ──────────────────────────────────────────────────────────────
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 10 }}>
-      <label style={{ fontSize: 10, color: 'var(--text3)', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'block', marginBottom: 5 }}>
+      <label style={{ fontSize: 10, color: error ? 'var(--red2)' : 'var(--text3)', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'block', marginBottom: 5 }}>
         {label}
       </label>
       {children}
+      {error && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4, fontSize: 11, color: 'var(--red2)', fontFamily: 'var(--mono)' }}>
+          <AlertCircle size={11} />
+          {error}
+        </div>
+      )}
     </div>
   )
 }
 
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  background: 'var(--bg3)',
-  border: '1px solid var(--border)',
-  borderRadius: 8,
-  padding: '9px 11px',
-  color: 'var(--text)',
-  fontFamily: 'var(--mono)',
-  fontSize: 13,
-  outline: 'none',
-  WebkitAppearance: 'none',
-  appearance: 'none',
+function fieldStyle(hasError: boolean): React.CSSProperties {
+  return {
+    width: '100%',
+    background: 'var(--bg3)',
+    border: `1px solid ${hasError ? 'var(--red)' : 'var(--border)'}`,
+    borderRadius: 8,
+    padding: '9px 11px',
+    color: 'var(--text)',
+    fontFamily: 'var(--mono)',
+    fontSize: 13,
+    outline: 'none',
+    WebkitAppearance: 'none',
+    appearance: 'none',
+    transition: 'border-color 0.2s',
+  }
 }
 
+// ── Symbols tag input ─────────────────────────────────────────────────────────
+const PRESET_SYMBOLS: Record<string, string[]> = {
+  KLSE:   ['PBBANK','MAYBANK','TENAGA','CIMB','DIALOG','HARTA','PCHEM','RHBBANK'],
+  NASDAQ: ['NVDA','AAPL','TSLA','MSFT','AMZN','META'],
+  NYSE:   ['JPM','GS','BAC','XOM','JNJ'],
+}
+
+function SymbolsInput({ market, value, onChange, error }: {
+  market: string
+  value: string[]
+  onChange: (v: string[]) => void
+  error?: string
+}) {
+  const presets = PRESET_SYMBOLS[market] ?? PRESET_SYMBOLS.KLSE
+
+  const toggle = (sym: string) => {
+    onChange(value.includes(sym) ? value.filter(s => s !== sym) : [...value, sym])
+  }
+
+  return (
+    <Field label="Symbols to trade" error={error}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {presets.map(sym => {
+          const active = value.includes(sym)
+          return (
+            <button
+              key={sym}
+              type="button"
+              onClick={() => toggle(sym)}
+              style={{
+                fontFamily: 'var(--mono)', fontSize: 11, padding: '4px 10px',
+                borderRadius: 5, cursor: 'pointer', transition: 'all 0.15s',
+                background: active ? 'var(--accent)' : 'var(--bg3)',
+                color: active ? '#fff' : 'var(--text3)',
+                border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                fontWeight: active ? 600 : 400,
+              }}
+            >
+              {sym}
+            </button>
+          )
+        })}
+      </div>
+      {value.length > 0 && (
+        <div style={{ marginTop: 6, fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--accent2)' }}>
+          {value.length} selected: {value.join(', ')}
+        </div>
+      )}
+    </Field>
+  )
+}
+
+// ── New strategy modal ────────────────────────────────────────────────────────
 function NewModal({ onClose, onSave }: { onClose: () => void; onSave: (d: StrategyCreate) => void }) {
   const [form, setForm] = useState<StrategyCreate>({
     name: '',
     broker: 'moomoo',
     market: 'KLSE',
-    symbols: ['PBBANK'],
+    symbols: [],
     entry_trigger: 'RSI_OVERSOLD',
     entry_params: { rsi_threshold: 30 },
     exit_trigger: 'TAKE_PROFIT',
@@ -92,7 +199,26 @@ function NewModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Strate
     max_position_size: 5000,
     mode: 'PAPER',
   })
-  const set = (k: keyof StrategyCreate, v: unknown) => setForm(f => ({ ...f, [k]: v }))
+
+  const [errors, setErrors] = useState<FormErrors>({})
+  const [submitted, setSubmitted] = useState(false)
+
+  const set = (k: keyof StrategyCreate, v: unknown) => {
+    const next = { ...form, [k]: v }
+    setForm(next)
+    // Re-validate on change after first submit attempt
+    if (submitted) setErrors(validate(next))
+  }
+
+  const handleSave = () => {
+    setSubmitted(true)
+    const errs = validate(form)
+    setErrors(errs)
+    if (Object.keys(errs).length > 0) return // block save
+    onSave(form)
+  }
+
+  const hasErrors = Object.keys(errors).length > 0
 
   return (
     <div
@@ -100,41 +226,62 @@ function NewModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Strate
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div className="modal">
-        {/* Handle — always visible, not scrollable */}
         <div className="modal-handle" />
 
-        {/* All content scrolls inside here */}
         <div className="modal-scroll">
           <div className="modal-title">Build Strategy</div>
 
-          <Field label="Strategy name">
+          {/* Strategy name */}
+          <Field label="Strategy name *" error={errors.name}>
             <input
-              style={inputStyle}
+              style={fieldStyle(!!errors.name)}
               type="text"
               placeholder="e.g. MY Swing RSI"
               value={form.name}
+              maxLength={40}
               onChange={e => set('name', e.target.value)}
             />
+            <div style={{ fontSize: 10, color: 'var(--text3)', fontFamily: 'var(--mono)', marginTop: 3, textAlign: 'right' }}>
+              {form.name.length}/40
+            </div>
           </Field>
 
-          <Field label="Market">
-            <select style={inputStyle} value={form.market} onChange={e => set('market', e.target.value)}>
-              <option value="KLSE">Bursa Malaysia (KLSE)</option>
-              <option value="NASDAQ">US Market (NASDAQ)</option>
-              <option value="NYSE">US Market (NYSE)</option>
-            </select>
-          </Field>
+          {/* Market + Broker side by side */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <Field label="Market *">
+              <select
+                style={fieldStyle(false)}
+                value={form.market}
+                onChange={e => {
+                  set('market', e.target.value)
+                  set('symbols', []) // reset symbols when market changes
+                }}
+              >
+                <option value="KLSE">Bursa (KLSE)</option>
+                <option value="NASDAQ">NASDAQ</option>
+                <option value="NYSE">NYSE</option>
+              </select>
+            </Field>
+            <Field label="Broker *">
+              <select style={fieldStyle(false)} value={form.broker} onChange={e => set('broker', e.target.value)}>
+                <option value="moomoo">Moomoo</option>
+                <option value="tiger">Tiger</option>
+                <option value="ibkr">IBKR</option>
+              </select>
+            </Field>
+          </div>
 
-          <Field label="Broker">
-            <select style={inputStyle} value={form.broker} onChange={e => set('broker', e.target.value)}>
-              <option value="moomoo">Moomoo (Futu)</option>
-              <option value="tiger">Tiger Brokers</option>
-              <option value="ibkr">Interactive Brokers</option>
-            </select>
-          </Field>
+          {/* Symbol picker */}
+          <SymbolsInput
+            market={form.market}
+            value={form.symbols}
+            onChange={v => set('symbols', v)}
+            error={errors.symbols}
+          />
 
-          <Field label="Entry trigger">
-            <select style={inputStyle} value={form.entry_trigger} onChange={e => set('entry_trigger', e.target.value)}>
+          {/* Entry trigger */}
+          <Field label="Entry trigger *">
+            <select style={fieldStyle(false)} value={form.entry_trigger} onChange={e => set('entry_trigger', e.target.value)}>
               <option value="RSI_OVERSOLD">RSI crosses below 30 (oversold)</option>
               <option value="RSI_OVERBOUGHT">RSI crosses above 70 (overbought)</option>
               <option value="MACD_BULLISH_CROSS">MACD bullish crossover</option>
@@ -143,64 +290,99 @@ function NewModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Strate
             </select>
           </Field>
 
-          <Field label="Exit trigger">
-            <select style={inputStyle} value={form.exit_trigger} onChange={e => set('exit_trigger', e.target.value)}>
-              <option value="TAKE_PROFIT">Take profit +5%</option>
-              <option value="TRAILING_STOP">Trailing stop 2%</option>
-              <option value="RSI_OVERBOUGHT">RSI crosses above 70</option>
-            </select>
-          </Field>
-
-          <Field label="Stop loss">
-            <select style={inputStyle}>
-              <option>Fixed -2%</option>
-              <option>Fixed -3%</option>
-              <option>ATR-based (1×)</option>
-            </select>
-          </Field>
-
+          {/* Exit + Stop loss side by side */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <Field label="Quantity (lots)">
+            <Field label="Exit trigger *">
+              <select style={fieldStyle(false)} value={form.exit_trigger} onChange={e => set('exit_trigger', e.target.value)}>
+                <option value="TAKE_PROFIT">Take profit +5%</option>
+                <option value="TRAILING_STOP">Trailing stop 2%</option>
+                <option value="RSI_OVERBOUGHT">RSI above 70</option>
+              </select>
+            </Field>
+            <Field label="Stop loss *">
+              <select style={fieldStyle(false)}>
+                <option>Fixed -2%</option>
+                <option>Fixed -3%</option>
+                <option>ATR (1×)</option>
+              </select>
+            </Field>
+          </div>
+
+          {/* Quantity + Max size */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <Field label="Quantity (lots) *" error={errors.quantity}>
               <input
-                style={inputStyle}
+                style={fieldStyle(!!errors.quantity)}
                 type="number"
+                min={1}
+                max={100000}
                 value={form.quantity}
                 onChange={e => set('quantity', +e.target.value)}
               />
             </Field>
-            <Field label="Max size (RM)">
+            <Field label="Max size (RM) *" error={errors.max_position_size}>
               <input
-                style={inputStyle}
+                style={fieldStyle(!!errors.max_position_size)}
                 type="number"
+                min={1}
+                max={500000}
                 value={form.max_position_size}
                 onChange={e => set('max_position_size', +e.target.value)}
               />
             </Field>
           </div>
 
-          <Field label="Execution mode">
-            <select style={inputStyle} value={form.mode} onChange={e => set('mode', e.target.value as 'PAPER'|'SEMI_AUTO'|'LIVE')}>
+          {/* Mode */}
+          <Field label="Execution mode *">
+            <select style={fieldStyle(false)} value={form.mode} onChange={e => set('mode', e.target.value as 'PAPER'|'SEMI_AUTO'|'LIVE')}>
               <option value="PAPER">Paper trade (no real orders)</option>
               <option value="SEMI_AUTO">Semi-auto (confirm first)</option>
               <option value="LIVE">Full auto (execute immediately)</option>
             </select>
           </Field>
 
-          {/* Sticky buttons at bottom of scroll area */}
+          {/* LIVE mode warning */}
+          {form.mode === 'LIVE' && (
+            <div style={{
+              display: 'flex', gap: 8, alignItems: 'flex-start',
+              background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
+              borderRadius: 8, padding: '10px 12px', marginBottom: 10,
+            }}>
+              <AlertCircle size={14} style={{ color: 'var(--red2)', flexShrink: 0, marginTop: 1 }} />
+              <div style={{ fontSize: 11, color: 'var(--red2)', lineHeight: 1.5 }}>
+                <strong>Full auto mode</strong> will execute real orders immediately without confirmation. Ensure your broker is connected and risk limits are set correctly.
+              </div>
+            </div>
+          )}
+
+          {/* Summary error if submit blocked */}
+          {submitted && hasErrors && (
+            <div style={{
+              display: 'flex', gap: 8, alignItems: 'center',
+              background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+              borderRadius: 8, padding: '10px 12px', marginBottom: 10,
+              fontSize: 12, color: 'var(--red2)', fontFamily: 'var(--mono)',
+            }}>
+              <AlertCircle size={13} style={{ flexShrink: 0 }} />
+              Please fix {Object.keys(errors).length} error{Object.keys(errors).length > 1 ? 's' : ''} above before saving
+            </div>
+          )}
+
+          {/* Sticky buttons */}
           <div style={{
-            display: 'flex', gap: 10, marginTop: 16,
+            display: 'flex', gap: 10, marginTop: 8,
             position: 'sticky', bottom: 0,
             background: 'var(--bg2)',
-            paddingBottom: 8, paddingTop: 8,
+            paddingTop: 10, paddingBottom: 8,
+            borderTop: '1px solid var(--border)',
           }}>
             <button className="btn btn-outline" onClick={onClose} style={{ flex: 1 }}>
               Cancel
             </button>
             <button
               className="btn btn-primary"
-              style={{ flex: 1 }}
-              onClick={() => form.name && onSave(form)}
-              disabled={!form.name}
+              style={{ flex: 1, opacity: submitted && hasErrors ? 0.6 : 1 }}
+              onClick={handleSave}
             >
               Save Strategy
             </button>
@@ -211,6 +393,7 @@ function NewModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Strate
   )
 }
 
+// ── Strategies page ───────────────────────────────────────────────────────────
 export function Strategies({ onToast }: { onToast: (m: string) => void }) {
   const [showModal, setShowModal] = useState(false)
   const qc = useQueryClient()
@@ -234,7 +417,7 @@ export function Strategies({ onToast }: { onToast: (m: string) => void }) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['strategies'] })
       setShowModal(false)
-      onToast('✓ Strategy saved (paper mode)')
+      onToast('✓ Strategy saved successfully')
     },
   })
 
