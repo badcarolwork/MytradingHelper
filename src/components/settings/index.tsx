@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Shield, Bell, Cpu, Lock } from 'lucide-react'
-import { tradingApi, portfolioApi } from '@/lib/api'
+import { mockTradingApi as tradingApi, mockPortfolioApi as portfolioApi } from '@/lib/mockApi'
 import { useAuthStore, useTradingStore } from '@/store'
 import { Card, CardHeader, Toggle, SectionLabel, Badge, Spinner } from '@/components/ui'
 
@@ -41,7 +41,7 @@ export function Settings({ onToast }: { onToast: (msg: string) => void }) {
   const connectMutation = useMutation({
     mutationFn: ({ broker, connect }: { broker: string; connect: boolean }) =>
       connect
-        ? portfolioApi.connectBroker(broker, 'mock_key', 'mock_secret')
+        ? portfolioApi.connectBroker(broker)
         : portfolioApi.disconnectBroker(broker),
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['brokers'] })

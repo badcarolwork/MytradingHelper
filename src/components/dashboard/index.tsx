@@ -1,13 +1,12 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { PowerOff, AlertTriangle } from 'lucide-react'
-import { tradingApi, portfolioApi } from '@/lib/api'
+import { PowerOff } from 'lucide-react'
+import { mockTradingApi, mockPortfolioApi } from '@/lib/mockApi'
 import { useTradingStore } from '@/store'
 import { Card, CardHeader, Metric } from '@/components/ui'
 import { PnLChart } from '@/components/dashboard/PnLChart'
 import { fmtRM, fmtPct, cn } from '@/lib/utils'
-import type { PnLRecord } from '@/types'
 
 export function Dashboard({ onToast }: { onToast: (msg: string) => void }) {
   const qc = useQueryClient()
@@ -15,42 +14,36 @@ export function Dashboard({ onToast }: { onToast: (msg: string) => void }) {
 
   const { data: portfolio } = useQuery({
     queryKey: ['portfolio'],
-    queryFn: () => portfolioApi.summary().then(r => r.data),
+    queryFn: () => mockPortfolioApi.summary().then(r => r.data),
     refetchInterval: 10_000,
   })
 
   const { data: pnlHistory } = useQuery({
     queryKey: ['pnl-history'],
-    queryFn: () => portfolioApi.pnlHistory(7).then(r => r.data.history),
+    queryFn: () => mockPortfolioApi.pnlHistory(7).then(r => r.data.history),
     staleTime: 60_000,
   })
 
   const { data: risk } = useQuery({
     queryKey: ['risk'],
-    queryFn: () => tradingApi.risk().then(r => {
-      setRiskConfig(r.data)
-      return r.data
-    }),
+    queryFn: () => mockTradingApi.risk().then(r => { setRiskConfig(r.data); return r.data }),
     refetchInterval: 15_000,
   })
 
   const killMutation = useMutation({
-    mutationFn: (active: boolean) => tradingApi.killSwitch(active),
+    mutationFn: (active: boolean) => mockTradingApi.killSwitch(active),
     onSuccess: (res) => {
-      const active = res.data.kill_switch_active
-      setKillSwitch(active)
+      setKillSwitch(res.data.kill_switch_active)
       qc.invalidateQueries({ queryKey: ['risk'] })
-      onToast(active ? '⚠ Kill switch activated — all trading halted' : '✓ Trading resumed')
+      onToast(res.data.message)
     },
   })
 
-  const todayPnl = portfolio?.today_pnl ?? 0
+  const todayPnl    = portfolio?.today_pnl    ?? 0
   const todayPnlPct = portfolio?.today_pnl_pct ?? 0
 
   return (
     <div className="flex flex-col gap-3.5">
-
-      {/* Metrics */}
       <div className="grid grid-cols-2 gap-2.5">
         <Metric
           label="Portfolio"
@@ -78,17 +71,15 @@ export function Dashboard({ onToast }: { onToast: (msg: string) => void }) {
         />
       </div>
 
-      {/* P&L Chart */}
       <Card>
         <CardHeader title="P&L — 7 days" />
-        <PnLChart data={(pnlHistory as PnLRecord[] | undefined) ?? []} />
+        <PnLChart data={pnlHistory ?? []} />
       </Card>
 
-      {/* Risk gauge */}
       {risk && (
         <Card>
           <CardHeader title="Risk Status" />
-          <div className="space-y-3">
+          <div className="space-y-2">
             <div className="flex justify-between text-[11px] font-mono">
               <span className="text-slate-400">Daily loss consumed</span>
               <span className={risk.daily_loss_pct >= 80 ? 'text-red-400' : risk.daily_loss_pct >= 60 ? 'text-amber-400' : 'text-emerald-400'}>
@@ -96,27 +87,35 @@ export function Dashboard({ onToast }: { onToast: (msg: string) => void }) {
               </span>
             </div>
             <div className="h-1.5 rounded-full bg-[#243352] overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{
-                  width: `${Math.min(risk.daily_loss_pct, 100)}%`,
-                  background: risk.daily_loss_pct >= 80
-                    ? 'linear-gradient(90deg,#f59e0b,#ef4444)'
-                    : risk.daily_loss_pct >= 50
-                      ? 'linear-gradient(90deg,#10b981,#f59e0b)'
-                      : '#10b981',
-                }}
+              <div className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(risk.daily_loss_pct, 100)}%`, background: risk.daily_loss_pct >= 80 ? 'linear-gradient(90deg,#f59e0b,#ef4444)' : '#10b981' }}
               />
             </div>
             <div className="flex justify-between text-[10px] text-slate-500 font-mono">
-              <span>RM 0</span>
-              <span>RM {risk.max_daily_loss.toLocaleString()} limit</span>
+              <span>RM 0</span><span>RM {risk.max_daily_loss.toLocaleString()} limit</span>
             </div>
           </div>
         </Card>
       )}
 
-      {/* Kill switch */}
+      <Card>
+        <CardHeader title="Live Alerts" />
+        {[
+          { color: 'bg-emerald-400', text: <><strong className="font-mono text-slate-100">PBBANK</strong> hit RSI target (32.4). Buy order placed: 200 lots @ RM 4.12</>, time: '2 min ago · Moomoo' },
+          { color: 'bg-amber-400',   text: <><strong className="font-mono text-slate-100">MAYBANK</strong> approaching stop-loss (RM 8.60). Current: RM 8.63</>, time: '7 min ago · Strategy: MY Swing' },
+          { color: 'bg-blue-400',    text: <><strong className="font-mono text-slate-100">KLCI</strong> daily volume breakout detected. 2.3× avg volume threshold</>, time: '22 min ago · Scanner' },
+          { color: 'bg-red-400',     text: <><strong className="font-mono text-slate-100">Daily loss limit</strong> 85% consumed. Risk guard active</>, time: '1 hr ago · Risk Engine' },
+        ].map((a, i) => (
+          <div key={i} className="flex gap-3 py-2.5 border-b border-blue-500/10 last:border-0">
+            <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1 ${a.color}`} />
+            <div>
+              <div className="text-[12px] text-slate-400 leading-relaxed">{a.text}</div>
+              <div className="text-[10px] text-slate-500 font-mono mt-0.5">{a.time}</div>
+            </div>
+          </div>
+        ))}
+      </Card>
+
       <button
         onClick={() => killMutation.mutate(!killSwitchActive)}
         disabled={killMutation.isPending}
@@ -125,13 +124,12 @@ export function Dashboard({ onToast }: { onToast: (msg: string) => void }) {
           'flex items-center justify-center gap-2.5 transition-all duration-200 active:scale-[0.98]',
           killSwitchActive
             ? 'bg-red-500/20 border-red-500/60 text-red-300'
-            : 'bg-red-500/08 border-red-500/30 text-red-400 hover:bg-red-500/12'
+            : 'bg-red-500/08 border-red-500/30 text-red-400'
         )}
       >
         <PowerOff size={18} />
         {killSwitchActive ? '⚠ ALL BOTS HALTED — TAP TO RESUME' : 'EMERGENCY KILL SWITCH'}
       </button>
-
     </div>
   )
 }

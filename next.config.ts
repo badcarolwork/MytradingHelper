@@ -5,7 +5,7 @@ const config: NextConfig = {
   trailingSlash: true,
   images: { unoptimized: true },
   basePath: '/MytradingHelper',
-  assetPrefix: '/MytradingHelper/',
+  assetPrefix: '/MytradingHelper',
 }
 
 export default config

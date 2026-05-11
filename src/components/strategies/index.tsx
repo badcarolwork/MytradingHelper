@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Play, Pause, FlaskConical, X } from 'lucide-react'
-import { strategyApi } from '@/lib/api'
+import { mockStrategyApi } from '@/lib/mockApi'
 import { Card, Badge, Spinner } from '@/components/ui'
 import { cn } from '@/lib/utils'
 import type { Strategy, StrategyCreate, EntryTrigger } from '@/types'
@@ -171,12 +171,12 @@ export function Strategies({ onToast }: { onToast: (msg: string) => void }) {
 
   const { data, isLoading } = useQuery({
     queryKey: ['strategies'],
-    queryFn: () => strategyApi.list().then(r => r.data),
+    queryFn: () => mockStrategyApi.list().then(r => r.data),
   })
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
-      strategyApi.update(id, { status: status === 'active' ? 'paused' : 'active' }),
+      mockStrategyApi.update(id, { status: status === 'active' ? 'paused' : 'active' }),
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['strategies'] })
       onToast(vars.status === 'active' ? '⏸ Strategy paused' : '▶ Strategy resumed')
@@ -184,7 +184,7 @@ export function Strategies({ onToast }: { onToast: (msg: string) => void }) {
   })
 
   const createMutation = useMutation({
-    mutationFn: strategyApi.create,
+    mutationFn: mockStrategyApi.create,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['strategies'] })
       setShowModal(false)
@@ -193,7 +193,7 @@ export function Strategies({ onToast }: { onToast: (msg: string) => void }) {
   })
 
   const evalMutation = useMutation({
-    mutationFn: (id: string) => strategyApi.evaluate(id).then(r => r.data),
+    mutationFn: (id: string) => mockStrategyApi.evaluate(id).then(r => r.data),
     onSuccess: (data) => {
       const hits = data.results.filter(r => r.signal).length
       onToast(`Evaluated: ${hits}/${data.results.length} signals`)

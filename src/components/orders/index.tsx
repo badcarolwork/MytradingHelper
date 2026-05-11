@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { X } from 'lucide-react'
-import { tradingApi } from '@/lib/api'
+import { mockTradingApi as tradingApi } from '@/lib/mockApi'
 import { Card, CardHeader, Badge, Spinner } from '@/components/ui'
 import { cn } from '@/lib/utils'
 import type { Order } from '@/types'
@@ -54,7 +54,7 @@ export function Orders({ onToast }: { onToast: (msg: string) => void }) {
   })
 
   const cancelMutation = useMutation({
-    mutationFn: (orderId: string) => tradingApi.cancelOrder(orderId),
+    mutationFn: (orderId: string) => tradingApi.cancelOrder(),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['orders'] })
       onToast('Order cancelled')
