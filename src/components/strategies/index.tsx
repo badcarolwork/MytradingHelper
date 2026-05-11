@@ -40,41 +40,124 @@ function StrategyCard({ s, onToggle, onEval }: { s: Strategy; onToggle: () => vo
 }
 
 function NewModal({ onClose, onSave }: { onClose: () => void; onSave: (d: StrategyCreate) => void }) {
-  const [form, setForm] = useState<StrategyCreate>({ name: '', broker: 'moomoo', market: 'KLSE', symbols: ['PBBANK'], entry_trigger: 'RSI_OVERSOLD', entry_params: { rsi_threshold: 30 }, exit_trigger: 'TAKE_PROFIT', exit_params: { take_profit_pct: 5, stop_loss_pct: 2 }, quantity: 1000, max_position_size: 5000, mode: 'PAPER' })
+  const [form, setForm] = useState<StrategyCreate>({
+    name: '', broker: 'moomoo', market: 'KLSE', symbols: ['PBBANK'],
+    entry_trigger: 'RSI_OVERSOLD', entry_params: { rsi_threshold: 30 },
+    exit_trigger: 'TAKE_PROFIT', exit_params: { take_profit_pct: 5, stop_loss_pct: 2 },
+    quantity: 1000, max_position_size: 5000, mode: 'PAPER',
+  })
   const set = (k: keyof StrategyCreate, v: unknown) => setForm(f => ({ ...f, [k]: v }))
+
   return (
-    <div className="modal-bg open">
+    <div
+      className="modal-bg open"
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    >
       <div className="modal">
+        {/* Fixed handle at top — never scrolls away */}
         <div className="modal-handle" />
-        <div className="modal-title">Build Strategy</div>
-        {[
-          { label: 'Strategy name', key: 'name', type: 'text', placeholder: 'e.g. MY Swing RSI' },
-        ].map(f => (
-          <div key={f.key} className="builder-field">
-            <label className="field-label">{f.label}</label>
-            <input type={f.type} placeholder={f.placeholder} value={form[f.key as 'name'] as string} onChange={e => set(f.key as 'name', e.target.value)} className="field-input" />
+
+        {/* Scrollable content area */}
+        <div className="modal-scroll">
+          <div className="modal-title">Build Strategy</div>
+
+          <div className="builder-field">
+            <label className="field-label">Strategy name</label>
+            <input
+              type="text"
+              placeholder="e.g. MY Swing RSI"
+              value={form.name}
+              onChange={e => set('name', e.target.value)}
+              className="field-input"
+            />
           </div>
-        ))}
-        {([
-          { label: 'Market', key: 'market', opts: ['KLSE','NASDAQ','NYSE'] },
-          { label: 'Broker', key: 'broker', opts: ['moomoo','tiger','ibkr'] },
-          { label: 'Entry trigger', key: 'entry_trigger', opts: ['RSI_OVERSOLD','RSI_OVERBOUGHT','MACD_BULLISH_CROSS','VOLUME_SPIKE','ABOVE_EMA'] },
-          { label: 'Mode', key: 'mode', opts: ['PAPER','SEMI_AUTO','LIVE'] },
-        ] as const).map(f => (
-          <div key={f.key} className="builder-field">
-            <label className="field-label">{f.label}</label>
-            <select className="field-input" value={form[f.key] as string} onChange={e => set(f.key, e.target.value)}>
-              {f.opts.map(o => <option key={o} value={o}>{o}</option>)}
+
+          <div className="builder-field">
+            <label className="field-label">Market</label>
+            <select className="field-input" value={form.market} onChange={e => set('market', e.target.value)}>
+              <option value="KLSE">Bursa Malaysia (KLSE)</option>
+              <option value="NASDAQ">US Market (NASDAQ)</option>
+              <option value="NYSE">US Market (NYSE)</option>
             </select>
           </div>
-        ))}
-        <div className="builder-field">
-          <label className="field-label">Quantity (lots)</label>
-          <input type="number" value={form.quantity} onChange={e => set('quantity', +e.target.value)} className="field-input" />
-        </div>
-        <div className="btn-row">
-          <button className="btn btn-outline" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={() => onSave(form)} disabled={!form.name}>Save Strategy</button>
+
+          <div className="builder-field">
+            <label className="field-label">Broker</label>
+            <select className="field-input" value={form.broker} onChange={e => set('broker', e.target.value)}>
+              <option value="moomoo">Moomoo (Futu)</option>
+              <option value="tiger">Tiger Brokers</option>
+              <option value="ibkr">Interactive Brokers</option>
+            </select>
+          </div>
+
+          <div className="builder-field">
+            <label className="field-label">Entry trigger</label>
+            <select className="field-input" value={form.entry_trigger} onChange={e => set('entry_trigger', e.target.value)}>
+              <option value="RSI_OVERSOLD">RSI crosses below 30 (oversold)</option>
+              <option value="RSI_OVERBOUGHT">RSI crosses above 70 (overbought)</option>
+              <option value="MACD_BULLISH_CROSS">MACD bullish crossover</option>
+              <option value="VOLUME_SPIKE">Volume spike (2× avg)</option>
+              <option value="ABOVE_EMA">Price above 20 EMA</option>
+            </select>
+          </div>
+
+          <div className="builder-field">
+            <label className="field-label">Exit trigger</label>
+            <select className="field-input" value={form.exit_trigger} onChange={e => set('exit_trigger', e.target.value)}>
+              <option value="TAKE_PROFIT">Take profit +5%</option>
+              <option value="TRAILING_STOP">Trailing stop 2%</option>
+              <option value="RSI_OVERBOUGHT">RSI crosses above 70</option>
+            </select>
+          </div>
+
+          <div className="builder-field">
+            <label className="field-label">Stop loss</label>
+            <select className="field-input">
+              <option>Fixed -2%</option>
+              <option>Fixed -3%</option>
+              <option>ATR-based (1×)</option>
+            </select>
+          </div>
+
+          <div className="builder-field">
+            <label className="field-label">Quantity (lots)</label>
+            <input
+              type="number"
+              value={form.quantity}
+              onChange={e => set('quantity', +e.target.value)}
+              className="field-input"
+            />
+          </div>
+
+          <div className="builder-field">
+            <label className="field-label">Max position size (RM)</label>
+            <input
+              type="number"
+              value={form.max_position_size}
+              onChange={e => set('max_position_size', +e.target.value)}
+              className="field-input"
+            />
+          </div>
+
+          <div className="builder-field">
+            <label className="field-label">Execution mode</label>
+            <select className="field-input" value={form.mode} onChange={e => set('mode', e.target.value as 'PAPER'|'SEMI_AUTO'|'LIVE')}>
+              <option value="PAPER">Paper trade (no real orders)</option>
+              <option value="SEMI_AUTO">Semi-auto (confirm before trade)</option>
+              <option value="LIVE">Full auto (execute immediately)</option>
+            </select>
+          </div>
+
+          <div className="btn-row">
+            <button className="btn btn-outline" onClick={onClose}>Cancel</button>
+            <button
+              className="btn btn-primary"
+              onClick={() => form.name && onSave(form)}
+              disabled={!form.name}
+            >
+              Save Strategy
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -85,39 +168,69 @@ export function Strategies({ onToast }: { onToast: (m: string) => void }) {
   const [showModal, setShowModal] = useState(false)
   const qc = useQueryClient()
 
-  const { data, isLoading } = useQuery({ queryKey: ['strategies'], queryFn: () => mockStrategyApi.list().then(r => r.data) })
+  const { data, isLoading } = useQuery({
+    queryKey: ['strategies'],
+    queryFn: () => mockStrategyApi.list().then(r => r.data),
+  })
 
   const toggleMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => mockStrategyApi.update(id, { status: status === 'active' ? 'paused' : 'active' }),
-    onSuccess: (_, v) => { qc.invalidateQueries({ queryKey: ['strategies'] }); onToast(v.status === 'active' ? '⏸ Strategy paused' : '▶ Strategy resumed') },
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      mockStrategyApi.update(id, { status: status === 'active' ? 'paused' : 'active' }),
+    onSuccess: (_, v) => {
+      qc.invalidateQueries({ queryKey: ['strategies'] })
+      onToast(v.status === 'active' ? '⏸ Strategy paused' : '▶ Strategy resumed')
+    },
   })
 
   const createMutation = useMutation({
     mutationFn: mockStrategyApi.create,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['strategies'] }); setShowModal(false); onToast('✓ Strategy saved (paper mode)') },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['strategies'] })
+      setShowModal(false)
+      onToast('✓ Strategy saved (paper mode)')
+    },
   })
 
   const evalMutation = useMutation({
     mutationFn: (id: string) => mockStrategyApi.evaluate(id).then(r => r.data),
-    onSuccess: d => { const hits = d.results.filter((r: {signal: boolean}) => r.signal).length; onToast(`Evaluated: ${hits}/${d.results.length} signals`) },
+    onSuccess: d => {
+      const hits = d.results.filter((r: { signal: boolean }) => r.signal).length
+      onToast(`Evaluated: ${hits}/${d.results.length} signals`)
+    },
   })
 
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0 8px' }}>
         <span className="section-label">My Strategies</span>
-        <button className="btn btn-primary" style={{ flex: 0, padding: '8px 16px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => setShowModal(true)}>
+        <button
+          className="btn btn-primary"
+          style={{ flex: 0, padding: '8px 16px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}
+          onClick={() => setShowModal(true)}
+        >
           <Plus size={13} /> New
         </button>
       </div>
-      {isLoading && <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><Spinner /></div>}
+
+      {isLoading && (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><Spinner /></div>
+      )}
+
       {data?.strategies.map(s => (
-        <StrategyCard key={s.id} s={s}
+        <StrategyCard
+          key={s.id}
+          s={s}
           onToggle={() => toggleMutation.mutate({ id: s.id, status: s.status })}
           onEval={() => evalMutation.mutate(s.id)}
         />
       ))}
-      {showModal && <NewModal onClose={() => setShowModal(false)} onSave={createMutation.mutate} />}
+
+      {showModal && (
+        <NewModal
+          onClose={() => setShowModal(false)}
+          onSave={createMutation.mutate}
+        />
+      )}
     </>
   )
 }

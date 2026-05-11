@@ -41,8 +41,12 @@ export function Badge({ variant, children }: {
 
 export function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <label className="switch" onClick={() => onChange(!checked)}>
-      <input type="checkbox" checked={checked} onChange={() => {}} />
+    <label className="switch">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={e => onChange(e.target.checked)}
+      />
       <span className="slider" />
     </label>
   )
