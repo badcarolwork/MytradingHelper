@@ -1,11 +1,11 @@
 import type { NextConfig } from 'next'
 
 const config: NextConfig = {
-  output: 'export',
+  output:        'export',
   trailingSlash: true,
-  images: { unoptimized: true },
-  basePath: '/MytradingHelper',
-  assetPrefix: '/MytradingHelper',
+  images:        { unoptimized: true },
+  basePath:      '/MytradingHelper',
+  assetPrefix:   '/MytradingHelper',
 }
 
 export default config
