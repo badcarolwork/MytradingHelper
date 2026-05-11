@@ -16,16 +16,29 @@ function StrategyCard({ s, onToggle, onEval }: { s: Strategy; onToggle: () => vo
         <div className="strat-name">{s.name}</div>
         <Badge variant={s.status as 'active'|'paused'|'inactive'}>{s.status.toUpperCase()}</Badge>
       </div>
-      <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--mono)', marginBottom: 8 }}>{s.broker} · {s.market} · {s.mode}</div>
+      <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--mono)', marginBottom: 8 }}>
+        {s.broker} · {s.market} · {s.mode}
+      </div>
       <div className="strat-criteria">
         <span className="criterion">{s.entry_trigger.replace(/_/g,' ').toLowerCase()}</span>
         <span className="criterion">{s.exit_trigger.replace(/_/g,' ').toLowerCase()}</span>
         {s.symbols.slice(0,3).map(sym => <span key={sym} className="criterion">{sym}</span>)}
       </div>
       <div className="strat-stats">
-        <div className="strat-stat"><div className="strat-stat-val">{s.stats.trades}</div><div className="strat-stat-label">Trades</div></div>
-        <div className="strat-stat"><div className={`strat-stat-val ${wr > 0 ? 'up' : ''}`}>{wr}%</div><div className="strat-stat-label">Win rate</div></div>
-        <div className="strat-stat"><div className={`strat-stat-val ${pnl >= 0 ? 'up' : 'dn'}`}>{pnl >= 0 ? '+' : ''}RM {Math.abs(pnl).toLocaleString()}</div><div className="strat-stat-label">P&L</div></div>
+        <div className="strat-stat">
+          <div className="strat-stat-val">{s.stats.trades}</div>
+          <div className="strat-stat-label">Trades</div>
+        </div>
+        <div className="strat-stat">
+          <div className={`strat-stat-val ${wr > 0 ? 'up' : ''}`}>{wr}%</div>
+          <div className="strat-stat-label">Win rate</div>
+        </div>
+        <div className="strat-stat">
+          <div className={`strat-stat-val ${pnl >= 0 ? 'up' : 'dn'}`}>
+            {pnl >= 0 ? '+' : ''}RM {Math.abs(pnl).toLocaleString()}
+          </div>
+          <div className="strat-stat-label">P&L</div>
+        </div>
       </div>
       <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
         <button onClick={onToggle} className="card-action" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
@@ -39,12 +52,45 @@ function StrategyCard({ s, onToggle, onEval }: { s: Strategy; onToggle: () => vo
   )
 }
 
+// Compact field for small screens
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <label style={{ fontSize: 10, color: 'var(--text3)', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'block', marginBottom: 5 }}>
+        {label}
+      </label>
+      {children}
+    </div>
+  )
+}
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  background: 'var(--bg3)',
+  border: '1px solid var(--border)',
+  borderRadius: 8,
+  padding: '9px 11px',
+  color: 'var(--text)',
+  fontFamily: 'var(--mono)',
+  fontSize: 13,
+  outline: 'none',
+  WebkitAppearance: 'none',
+  appearance: 'none',
+}
+
 function NewModal({ onClose, onSave }: { onClose: () => void; onSave: (d: StrategyCreate) => void }) {
   const [form, setForm] = useState<StrategyCreate>({
-    name: '', broker: 'moomoo', market: 'KLSE', symbols: ['PBBANK'],
-    entry_trigger: 'RSI_OVERSOLD', entry_params: { rsi_threshold: 30 },
-    exit_trigger: 'TAKE_PROFIT', exit_params: { take_profit_pct: 5, stop_loss_pct: 2 },
-    quantity: 1000, max_position_size: 5000, mode: 'PAPER',
+    name: '',
+    broker: 'moomoo',
+    market: 'KLSE',
+    symbols: ['PBBANK'],
+    entry_trigger: 'RSI_OVERSOLD',
+    entry_params: { rsi_threshold: 30 },
+    exit_trigger: 'TAKE_PROFIT',
+    exit_params: { take_profit_pct: 5, stop_loss_pct: 2 },
+    quantity: 1000,
+    max_position_size: 5000,
+    mode: 'PAPER',
   })
   const set = (k: keyof StrategyCreate, v: unknown) => setForm(f => ({ ...f, [k]: v }))
 
@@ -54,104 +100,105 @@ function NewModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Strate
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div className="modal">
-        {/* Fixed handle at top — never scrolls away */}
+        {/* Handle — always visible, not scrollable */}
         <div className="modal-handle" />
 
-        {/* Scrollable content area */}
+        {/* All content scrolls inside here */}
         <div className="modal-scroll">
           <div className="modal-title">Build Strategy</div>
 
-          <div className="builder-field">
-            <label className="field-label">Strategy name</label>
+          <Field label="Strategy name">
             <input
+              style={inputStyle}
               type="text"
               placeholder="e.g. MY Swing RSI"
               value={form.name}
               onChange={e => set('name', e.target.value)}
-              className="field-input"
             />
-          </div>
+          </Field>
 
-          <div className="builder-field">
-            <label className="field-label">Market</label>
-            <select className="field-input" value={form.market} onChange={e => set('market', e.target.value)}>
+          <Field label="Market">
+            <select style={inputStyle} value={form.market} onChange={e => set('market', e.target.value)}>
               <option value="KLSE">Bursa Malaysia (KLSE)</option>
               <option value="NASDAQ">US Market (NASDAQ)</option>
               <option value="NYSE">US Market (NYSE)</option>
             </select>
-          </div>
+          </Field>
 
-          <div className="builder-field">
-            <label className="field-label">Broker</label>
-            <select className="field-input" value={form.broker} onChange={e => set('broker', e.target.value)}>
+          <Field label="Broker">
+            <select style={inputStyle} value={form.broker} onChange={e => set('broker', e.target.value)}>
               <option value="moomoo">Moomoo (Futu)</option>
               <option value="tiger">Tiger Brokers</option>
               <option value="ibkr">Interactive Brokers</option>
             </select>
-          </div>
+          </Field>
 
-          <div className="builder-field">
-            <label className="field-label">Entry trigger</label>
-            <select className="field-input" value={form.entry_trigger} onChange={e => set('entry_trigger', e.target.value)}>
+          <Field label="Entry trigger">
+            <select style={inputStyle} value={form.entry_trigger} onChange={e => set('entry_trigger', e.target.value)}>
               <option value="RSI_OVERSOLD">RSI crosses below 30 (oversold)</option>
               <option value="RSI_OVERBOUGHT">RSI crosses above 70 (overbought)</option>
               <option value="MACD_BULLISH_CROSS">MACD bullish crossover</option>
               <option value="VOLUME_SPIKE">Volume spike (2× avg)</option>
               <option value="ABOVE_EMA">Price above 20 EMA</option>
             </select>
-          </div>
+          </Field>
 
-          <div className="builder-field">
-            <label className="field-label">Exit trigger</label>
-            <select className="field-input" value={form.exit_trigger} onChange={e => set('exit_trigger', e.target.value)}>
+          <Field label="Exit trigger">
+            <select style={inputStyle} value={form.exit_trigger} onChange={e => set('exit_trigger', e.target.value)}>
               <option value="TAKE_PROFIT">Take profit +5%</option>
               <option value="TRAILING_STOP">Trailing stop 2%</option>
               <option value="RSI_OVERBOUGHT">RSI crosses above 70</option>
             </select>
-          </div>
+          </Field>
 
-          <div className="builder-field">
-            <label className="field-label">Stop loss</label>
-            <select className="field-input">
+          <Field label="Stop loss">
+            <select style={inputStyle}>
               <option>Fixed -2%</option>
               <option>Fixed -3%</option>
               <option>ATR-based (1×)</option>
             </select>
+          </Field>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <Field label="Quantity (lots)">
+              <input
+                style={inputStyle}
+                type="number"
+                value={form.quantity}
+                onChange={e => set('quantity', +e.target.value)}
+              />
+            </Field>
+            <Field label="Max size (RM)">
+              <input
+                style={inputStyle}
+                type="number"
+                value={form.max_position_size}
+                onChange={e => set('max_position_size', +e.target.value)}
+              />
+            </Field>
           </div>
 
-          <div className="builder-field">
-            <label className="field-label">Quantity (lots)</label>
-            <input
-              type="number"
-              value={form.quantity}
-              onChange={e => set('quantity', +e.target.value)}
-              className="field-input"
-            />
-          </div>
-
-          <div className="builder-field">
-            <label className="field-label">Max position size (RM)</label>
-            <input
-              type="number"
-              value={form.max_position_size}
-              onChange={e => set('max_position_size', +e.target.value)}
-              className="field-input"
-            />
-          </div>
-
-          <div className="builder-field">
-            <label className="field-label">Execution mode</label>
-            <select className="field-input" value={form.mode} onChange={e => set('mode', e.target.value as 'PAPER'|'SEMI_AUTO'|'LIVE')}>
+          <Field label="Execution mode">
+            <select style={inputStyle} value={form.mode} onChange={e => set('mode', e.target.value as 'PAPER'|'SEMI_AUTO'|'LIVE')}>
               <option value="PAPER">Paper trade (no real orders)</option>
-              <option value="SEMI_AUTO">Semi-auto (confirm before trade)</option>
+              <option value="SEMI_AUTO">Semi-auto (confirm first)</option>
               <option value="LIVE">Full auto (execute immediately)</option>
             </select>
-          </div>
+          </Field>
 
-          <div className="btn-row">
-            <button className="btn btn-outline" onClick={onClose}>Cancel</button>
+          {/* Sticky buttons at bottom of scroll area */}
+          <div style={{
+            display: 'flex', gap: 10, marginTop: 16,
+            position: 'sticky', bottom: 0,
+            background: 'var(--bg2)',
+            paddingBottom: 8, paddingTop: 8,
+          }}>
+            <button className="btn btn-outline" onClick={onClose} style={{ flex: 1 }}>
+              Cancel
+            </button>
             <button
               className="btn btn-primary"
+              style={{ flex: 1 }}
               onClick={() => form.name && onSave(form)}
               disabled={!form.name}
             >
@@ -213,7 +260,9 @@ export function Strategies({ onToast }: { onToast: (m: string) => void }) {
       </div>
 
       {isLoading && (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><Spinner /></div>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
+          <Spinner />
+        </div>
       )}
 
       {data?.strategies.map(s => (
