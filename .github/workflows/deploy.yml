@@ -3,6 +3,9 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main, AVdata]
+  schedule:
+    - cron: '0 1 * * *'
+  workflow_dispatch:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -28,7 +31,11 @@ jobs:
 
       - run: npm ci
 
-      - name: Build (static export)
+      - name: Fetch Alpha Vantage data
+        run: node scripts/fetch-av-data.js
+        continue-on-error: true
+
+      - name: Build
         run: npm run build
 
       - uses: actions/upload-pages-artifact@v3
